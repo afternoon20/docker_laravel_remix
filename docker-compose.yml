@@ -1,0 +1,92 @@
+services:
+  nginx:
+    image: nginx:stable
+    container_name: dev_nginx
+    ports:
+      - "80:80"
+    working_dir: /var/www/html
+    volumes:
+      - "${PROJECT_BACKEND_PATH}:/var/www/html"
+      - ./nginx:/etc/nginx/conf.d
+    # command: sh -c "chown -R www-data:www-data /usr/share/nginx/html && nginx -g 'daemon off;'"
+    
+    depends_on:
+      - backend
+    networks:
+      - laravel-network
+
+  backend:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: dev_backend
+    volumes:
+      - "${PROJECT_BACKEND_PATH}:/var/www/html"
+    depends_on:
+      - db
+      - mailhog
+    networks:
+      - laravel-network
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: dev_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - "${PROJECT_FRONTEND_PATH}:/app"
+    # environment:
+    #   - NODE_ENV=development
+    #   - API_BASE_URL="http://localhost:8080"
+    command: tail -f /dev/null
+    networks:
+      - laravel-network
+
+  db:
+    image: mysql:8.0
+    container_name: dev_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: my_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ./mariadb/data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - laravel-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    # Apple Silicon の場合はアーキテクチャ指定
+    platform: linux/amd64
+    container_name: dev_phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_USER: user
+      PMA_PASSWORD: password
+    ports:
+      - "8081:80"
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    # Apple Silicon の場合はアーキテクチャ指定
+    platform: linux/amd64
+    container_name: dev_mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+networks:
+  laravel-network:
+    driver: bridge
+
+volumes:
+  mariadb_data:
