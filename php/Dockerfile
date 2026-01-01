@@ -14,6 +14,9 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
 COPY php.ini /usr/local/etc/php/
 
 WORKDIR /var/www/html
